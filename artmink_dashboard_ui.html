@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Artmink Agentic Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen text-gray-800">
+
+  <!-- Top Nav Bar -->
+  <header class="bg-white shadow-sm sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+      <h1 class="text-2xl font-bold text-indigo-600">Artmink</h1>
+      <nav class="space-x-6 text-sm font-medium">
+        <a href="#" class="hover:text-indigo-600">Dashboard</a>
+        <a href="#" class="hover:text-indigo-600">My Appraisals</a>
+        <a href="#" class="hover:text-indigo-600">Marketplace</a>
+        <a href="#" class="hover:text-indigo-600">Agents</a>
+        <a href="#" class="hover:text-indigo-600">Account</a>
+        <a href="#" class="text-red-500 font-semibold">Logout</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-6xl mx-auto mt-10 px-4">
+    <!-- Upload Item -->
+    <section class="bg-white rounded-xl shadow p-6 mb-10">
+      <h2 class="text-xl font-semibold mb-4">📤 Upload New Item</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label class="block text-sm font-medium mb-2">Upload Images</label>
+          <input type="file" class="border border-gray-300 p-2 w-full rounded-md" multiple />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-2">Select Expert</label>
+          <select class="border border-gray-300 p-2 w-full rounded-md">
+            <option>Jade - Chinese Art</option>
+            <option>Rachel - European Furniture</option>
+            <option>Matt - Americana</option>
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium mb-2">Describe Your Item</label>
+          <textarea rows="3" class="w-full border border-gray-300 rounded-md p-2" placeholder="Optional description..."></textarea>
+        </div>
+      </div>
+      <div class="mt-6 text-right">
+        <button class="bg-indigo-600 text-white px-6 py-2 rounded-xl font-semibold hover:bg-indigo-700">Appraise Item</button>
+      </div>
+    </section>
+
+    <!-- Appraisal Output Placeholder -->
+    <section class="bg-white rounded-xl shadow p-6">
+      <h2 class="text-xl font-semibold mb-4">🧾 Appraisal Report</h2>
+      <div class="space-y-3">
+        <p><strong>Age Estimate:</strong> Qing Dynasty (18th c.)</p>
+        <p><strong>Style:</strong> Scholar’s Antler Chair</p>
+        <p><strong>Authenticity:</strong> Moderate confidence (Score: 62%)</p>
+        <p><strong>Description:</strong> This elegant throne evokes...</p>
+        <div class="text-right">
+          <button class="text-blue-600 hover:underline text-sm">Edit ✎</button>
+        </div>
+      </div>
+      <div class="mt-6 flex flex-wrap gap-3">
+        <button class="bg-blue-500 text-white px-4 py-2 rounded-md">Add Narration</button>
+        <button class="bg-yellow-500 text-white px-4 py-2 rounded-md">Add Slideshow</button>
+        <button class="bg-green-600 text-white px-4 py-2 rounded-md">Generate Sale Listing</button>
+      </div>
+    </section>
+  </main>
+
+</body>
+</html>

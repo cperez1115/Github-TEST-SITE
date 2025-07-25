@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- SEO -->
+  <meta name="description" content="Intro to Tailwind CSS — Hello World Tutorial" />
+  <meta name="author" content="Instructor Name" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Tailwind How-To" />
+  <meta property="og:description" content="Student-friendly Tailwind CSS starter page with live examples and comments." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://yourbootcamp.com/tailwind-how-to" />
+  <meta property="og:image" content="https://yourbootcamp.com/images/tailwind-preview.jpg" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Tailwind How-To" />
+  <meta name="twitter:description" content="Live Tailwind starter page with examples." />
+  <meta name="twitter:image" content="https://yourbootcamp.com/images/twitter-card.jpg" />
+
+  <title>Tailwind How-To</title>
+
+  <!-- Load Tailwind CSS from CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans">
+
+  <!-- Header with Navigation -->
+  <header class="bg-white shadow mb-6">
+    <nav class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+      <h1 class="text-2xl font-bold text-blue-700">Tailwind How-To</h1>
+      <ul class="flex space-x-4">
+        <li><a href="index.html" class="text-blue-600 hover:underline">Home</a></li>
+        <li><a href="about.html" class="text-blue-600 hover:underline">About</a></li>
+        <li><a href="services.html" class="text-blue-600 hover:underline">Services</a></li>
+        <li><a href="contact.html" class="text-blue-600 hover:underline">Contact</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4">
+
+    <!-- Intro Paragraph -->
+    <section class="bg-white p-6 rounded shadow mb-8">
+      <h2 class="text-xl font-semibold mb-2">What is Tailwind CSS?</h2>
+      <p>
+        🧠 <strong>Tailwind is a utility-first CSS framework</strong>. Instead of writing custom stylesheets,
+        you apply utility classes like <code class="bg-gray-200 px-1 py-0.5 rounded">bg-blue-500</code> and
+        <code class="bg-gray-200 px-1 py-0.5 rounded">text-white</code> directly in your HTML.
+      </p>
+    </section>
+
+    <!-- Button Example -->
+    <section class="mb-8">
+      <h2 class="text-lg font-semibold mb-2">Example: Button</h2>
+      <button class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition">
+        Save Changes
+      </button>
+      <p class="mt-2 text-sm text-gray-600">
+        ↑ This button uses: background, hover, text color, padding, rounded corners, and smooth transition.
+      </p>
+    </section>
+
+    <!-- Flex Layout -->
+    <section class="mb-8">
+      <h2 class="text-lg font-semibold mb-2">Example: Flexbox Layout</h2>
+      <div class="flex gap-4">
+        <div class="bg-green-200 p-4 rounded flex-1 text-center">Box A</div>
+        <div class="bg-yellow-200 p-4 rounded flex-1 text-center">Box B</div>
+        <div class="bg-pink-200 p-4 rounded flex-1 text-center">Box C</div>
+      </div>
+      <p class="mt-2 text-sm text-gray-600">
+        ↑ Using <code>flex</code>, <code>gap-4</code>, and <code>flex-1</code> for equal-width boxes.
+      </p>
+    </section>
+
+    <!-- Responsive Grid -->
+    <section class="mb-8">
+      <h2 class="text-lg font-semibold mb-2">Example: Responsive Grid</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div class="bg-blue-100 p-4 rounded text-center">Column 1</div>
+        <div class="bg-blue-200 p-4 rounded text-center">Column 2</div>
+        <div class="bg-blue-300 p-4 rounded text-center">Column 3</div>
+      </div>
+      <p class="mt-2 text-sm text-gray-600">
+        ↑ Single column on mobile, 2 on small screens, 3 on medium and up.
+      </p>
+    </section>
+
+    <!-- Typography -->
+    <section class="mb-8">
+      <h2 class="text-lg font-semibold mb-2">Typography Example</h2>
+      <p class="italic text-gray-700">
+        This text is <span class="underline">underlined</span>,
+        <span class="font-bold text-red-500">bold and red</span>,
+        and <span class="uppercase tracking-wide">uppercase with spacing</span>.
+      </p>
+    </section>
+
+        <!-- Comparison: Tailwind vs Bootstrap -->
+    <section class="mb-12">
+      <h2 class="text-xl font-semibold mb-4">Tailwind vs Bootstrap – Pros & Cons</h2>
+
+      <p class="mb-4">
+        Both <strong>Tailwind</strong> and <strong>Bootstrap</strong> help you build good-looking pages fast —
+        but they take different approaches. Here's a quick comparison:
+      </p>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full table-auto border border-gray-300 text-sm text-left">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="border px-4 py-2">Feature</th>
+              <th class="border px-4 py-2">Tailwind</th>
+              <th class="border px-4 py-2">Bootstrap</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="border px-4 py-2 font-medium">Philosophy</td>
+              <td class="border px-4 py-2">Utility-first — style with small building blocks</td>
+              <td class="border px-4 py-2">Component-based — pre-made buttons, cards, etc.</td>
+            </tr>
+            <tr>
+              <td class="border px-4 py-2 font-medium">Custom Design</td>
+              <td class="border px-4 py-2">Very customizable, no forced look</td>
+              <td class="border px-4 py-2">Faster to start, but can feel “samey”</td>
+            </tr>
+            <tr>
+              <td class="border px-4 py-2 font-medium">Learning Curve</td>
+              <td class="border px-4 py-2">Takes time to memorize utility classes</td>
+              <td class="border px-4 py-2">Easier for beginners — familiar class names</td>
+            </tr>
+            <tr>
+              <td class="border px-4 py-2 font-medium">File Size</td>
+              <td class="border px-4 py-2">Small with PurgeCSS — only keeps what you use</td>
+              <td class="border px-4 py-2">Larger by default, includes lots of unused CSS</td>
+            </tr>
+            <tr>
+              <td class="border px-4 py-2 font-medium">Responsiveness</td>
+              <td class="border px-4 py-2">Built-in with responsive utilities (e.g. <code>sm:</code>, <code>md:</code>)</td>
+              <td class="border px-4 py-2">Uses grid system with breakpoints</td>
+            </tr>
+            <tr>
+              <td class="border px-4 py-2 font-medium">JS Required?</td>
+              <td class="border px-4 py-2">No — Tailwind is just CSS</td>
+              <td class="border px-4 py-2">Yes — for components like modals, dropdowns</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="mt-4 text-gray-600">
+        💡 <strong>In short:</strong> Tailwind is flexible and modern, but requires more typing and learning.
+        Bootstrap is beginner-friendly and fast, but can feel rigid or overused. Pick the one that fits your project!
+      </p>
+    </section>
+
+  </main>
+
+  <footer class="bg-white mt-12 py-4 text-center text-sm text-gray-500 border-t">
+    &copy; 2025 Instructor Name. All rights reserved.
+  </footer>
+
+  <!-- You can still use your external JS if needed -->
+  <script src="js/script.js"></script>
+
+</body>
+</html>
