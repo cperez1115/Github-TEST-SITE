@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendar &mdash; FX Backtest</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/store.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html" class="nav-logo">&#x1F4C8; FX Backtest</a>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">Chart</a>
+    <a href="journal.html" class="nav-link">Journal</a>
+    <a href="calendar.html" class="nav-link active">Calendar</a>
+  </div>
+</nav>
+
+<div class="page-wrap">
+
+  <div class="cal-header">
+    <div class="cal-title" id="calTitle"></div>
+    <div class="cal-nav">
+      <button class="btn-icon" id="btnPrev">&laquo;</button>
+      <button class="btn btn-outline btn-sm" id="btnToday">Today</button>
+      <button class="btn-icon" id="btnNext">&raquo;</button>
+    </div>
+  </div>
+
+  <div class="stats-grid" id="monthStats"></div>
+
+  <div class="cal-dow-row">
+    <div class="cal-dow">Mon</div>
+    <div class="cal-dow">Tue</div>
+    <div class="cal-dow">Wed</div>
+    <div class="cal-dow">Thu</div>
+    <div class="cal-dow">Fri</div>
+    <div class="cal-dow">Sat</div>
+    <div class="cal-dow">Sun</div>
+  </div>
+  <div class="cal-grid" id="calGrid"></div>
+
+  <div id="dayDetail" class="day-detail" style="display:none;">
+    <div class="day-detail-title" id="dayDetailTitle"></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Pair</th><th>Dir</th><th>Entry</th>
+            <th>SL</th><th>TP</th><th>Lots</th>
+            <th>R : R</th><th>Status</th><th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="dayTradeBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const MONTHS = ['January','February','March','April','May','June',
+                'July','August','September','October','November','December'];
+
+const today = new Date();
+let viewYear  = today.getFullYear();
+let viewMonth = today.getMonth();
+let selectedDate = null;
+
+function dayKey(y, m, d) {
+  return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+function tradeDayPnL(t) {
+  if (t.status === 'WIN')  return  parseFloat(t.rewardDol || 0);
+  if (t.status === 'LOSS') return -parseFloat(t.riskDol   || 0);
+  return 0;
+}
+
+function renderMonthStats(monthTrades) {
+  const closed = monthTrades.filter(t => t.status === 'WIN' || t.status === 'LOSS');
+  const wins   = monthTrades.filter(t => t.status === 'WIN');
+  const pnl    = monthTrades.reduce((s, t) => s + tradeDayPnL(t), 0);
+  const wr     = closed.length ? ((wins.length / closed.length) * 100).toFixed(0) + '%' : '&mdash;';
+
+  const tradingDays = new Set(monthTrades.map(t => t.date)).size;
+  const pnlCls = pnl > 0 ? 'green' : pnl < 0 ? 'red' : '';
+  const wrNum  = parseFloat(wr);
+  const wrCls  = !isNaN(wrNum) ? (wrNum >= 50 ? 'green' : 'red') : 'gold';
+
+  document.getElementById('monthStats').innerHTML = `
+    <div class="stat-card"><div class="stat-lbl">Trades</div><div class="stat-val blue">${monthTrades.length}</div></div>
+    <div class="stat-card"><div class="stat-lbl">Win Rate</div><div class="stat-val ${wrCls}">${wr}</div></div>
+    <div class="stat-card"><div class="stat-lbl">Month P&amp;L</div><div class="stat-val ${pnlCls}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</div></div>
+    <div class="stat-card"><div class="stat-lbl">Trading Days</div><div class="stat-val gold">${tradingDays}</div></div>
+  `;
+}
+
+function render() {
+  document.getElementById('calTitle').textContent = `${MONTHS[viewMonth]} ${viewYear}`;
+
+  const allTrades = Store.getTrades();
+
+  // Group by date
+  const byDate = {};
+  for (const t of allTrades) {
+    if (!byDate[t.date]) byDate[t.date] = [];
+    byDate[t.date].push(t);
+  }
+
+  // Month trades for stats
+  const pfx = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`;
+  const monthTrades = allTrades.filter(t => t.date.startsWith(pfx));
+  renderMonthStats(monthTrades);
+
+  // Build calendar cells
+  const firstDay = new Date(viewYear, viewMonth, 1);
+  const lastDay  = new Date(viewYear, viewMonth + 1, 0);
+  let startDow   = (firstDay.getDay() + 6) % 7; // Mon = 0
+
+  const cells = [];
+  const prevLast = new Date(viewYear, viewMonth, 0).getDate();
+  for (let i = startDow - 1; i >= 0; i--)
+    cells.push({ day: prevLast - i, cur: false });
+  for (let d = 1; d <= lastDay.getDate(); d++)
+    cells.push({ day: d, cur: true });
+  let nd = 1;
+  while (cells.length % 7 !== 0)
+    cells.push({ day: nd++, cur: false });
+
+  const todayKey = dayKey(today.getFullYear(), today.getMonth(), today.getDate());
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+
+  cells.forEach(({ day, cur }) => {
+    const key       = cur ? dayKey(viewYear, viewMonth, day) : null;
+    const trades    = key ? (byDate[key] || []) : [];
+    const dayPnL    = trades.reduce((s, t) => s + tradeDayPnL(t), 0);
+    const isToday   = key === todayKey;
+    const isSel     = key === selectedDate;
+    const hasTrades = trades.length > 0;
+
+    const cell = document.createElement('div');
+    cell.className = [
+      'cal-cell',
+      !cur      ? 'other-month' : '',
+      isToday   ? 'is-today'   : '',
+      isSel     ? 'selected'   : '',
+      cur && hasTrades ? 'clickable' : '',
+    ].filter(Boolean).join(' ');
+
+    cell.innerHTML =
+      `<span class="cal-num">${day}</span>` +
+      (hasTrades ? `<span class="cal-trade-count">${trades.length} trade${trades.length > 1 ? 's' : ''}</span>` : '') +
+      (hasTrades ? `<span class="cal-day-pnl ${dayPnL > 0 ? 'pos' : dayPnL < 0 ? 'neg' : ''}">${dayPnL >= 0 ? '+' : ''}$${dayPnL.toFixed(0)}</span>` : '');
+
+    if (cur && hasTrades) {
+      cell.addEventListener('click', () => showDay(key, trades));
+    }
+
+    grid.appendChild(cell);
+  });
+}
+
+function showDay(date, trades) {
+  selectedDate = date;
+  render();
+
+  const d = new Date(date + 'T12:00:00');
+  document.getElementById('dayDetailTitle').textContent =
+    d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  document.getElementById('dayTradeBody').innerHTML = trades.map(t => `
+    <tr>
+      <td class="fw-600">${t.pair}</td>
+      <td><span class="badge badge-${t.direction.toLowerCase()}">${t.direction}</span></td>
+      <td>${t.entry}</td>
+      <td class="text-red">${t.sl}</td>
+      <td class="text-green">${t.tp}</td>
+      <td>${t.lots}</td>
+      <td class="text-gold">1 : ${t.rr}</td>
+      <td><span class="badge badge-${t.status.toLowerCase()}">${t.status}</span></td>
+      <td class="text-muted">${t.notes || '&mdash;'}</td>
+    </tr>
+  `).join('');
+
+  const detail = document.getElementById('dayDetail');
+  detail.style.display = 'block';
+  detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  render();
+
+  document.getElementById('btnPrev').addEventListener('click', () => {
+    viewMonth--;
+    if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+    render();
+  });
+  document.getElementById('btnNext').addEventListener('click', () => {
+    viewMonth++;
+    if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+    render();
+  });
+  document.getElementById('btnToday').addEventListener('click', () => {
+    viewYear  = today.getFullYear();
+    viewMonth = today.getMonth();
+    render();
+  });
+});
+</script>
+
+</body>
+</html>

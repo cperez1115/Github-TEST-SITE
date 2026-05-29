@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Journal &mdash; FX Backtest</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/store.js"></script>
+  <script src="js/pnl.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html" class="nav-logo">&#x1F4C8; FX Backtest</a>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">Chart</a>
+    <a href="journal.html" class="nav-link active">Journal</a>
+    <a href="calendar.html" class="nav-link">Calendar</a>
+  </div>
+</nav>
+
+<div class="page-wrap">
+
+  <div class="stats-grid" id="statsGrid"></div>
+
+  <!-- Filters -->
+  <div class="filter-bar">
+    <div>
+      <span class="filter-label">Pair</span>
+      <select id="fPair">
+        <option value="">All Pairs</option>
+        <option>XAUUSD</option><option>XAGUSD</option>
+        <option>EURUSD</option><option>GBPUSD</option>
+        <option>USDJPY</option><option>AUDUSD</option>
+        <option>USDCAD</option><option>USDCHF</option>
+        <option>NZDUSD</option><option>EURJPY</option><option>GBPJPY</option>
+      </select>
+    </div>
+    <div>
+      <span class="filter-label">Direction</span>
+      <select id="fDir">
+        <option value="">All</option>
+        <option>BUY</option><option>SELL</option>
+      </select>
+    </div>
+    <div>
+      <span class="filter-label">Status</span>
+      <select id="fStatus">
+        <option value="">All</option>
+        <option>OPEN</option><option>WIN</option><option>LOSS</option>
+      </select>
+    </div>
+    <div>
+      <span class="filter-label">From</span>
+      <input type="date" id="fFrom">
+    </div>
+    <div>
+      <span class="filter-label">To</span>
+      <input type="date" id="fTo">
+    </div>
+    <button class="btn btn-outline btn-sm" id="btnFilter" style="align-self:flex-end;">Apply</button>
+    <button class="btn btn-outline btn-sm" id="btnExport" style="align-self:flex-end;margin-left:auto;">Export CSV</button>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Pair</th>
+          <th>Dir</th>
+          <th>Entry</th>
+          <th>SL</th>
+          <th>TP</th>
+          <th>Lots</th>
+          <th>R : R</th>
+          <th>Risk $</th>
+          <th>Reward $</th>
+          <th>Status</th>
+          <th>Notes</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tradeBody"></tbody>
+    </table>
+    <div class="empty-state" id="emptyState" style="display:none;">
+      No trades yet &mdash; <a href="index.html">go to the Chart to log your first trade &rarr;</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function tradePnLForStats(t) {
+  if (t.status === 'WIN')  return  parseFloat(t.rewardDol || 0);
+  if (t.status === 'LOSS') return -parseFloat(t.riskDol   || 0);
+  return 0;
+}
+
+function renderStats() {
+  const all    = Store.getTrades();
+  const closed = all.filter(t => t.status === 'WIN' || t.status === 'LOSS');
+  const wins   = all.filter(t => t.status === 'WIN');
+  const wr     = closed.length ? ((wins.length / closed.length) * 100).toFixed(1) : '&mdash;';
+  const netPnL = all.reduce((s, t) => s + tradePnLForStats(t), 0);
+  const avgRR  = closed.length
+    ? (closed.reduce((s, t) => s + parseFloat(t.rr || 0), 0) / closed.length).toFixed(2)
+    : '&mdash;';
+
+  const wrNum  = parseFloat(wr);
+  const wrCls  = !isNaN(wrNum) ? (wrNum >= 50 ? 'green' : 'red') : 'gold';
+  const pnlCls = netPnL > 0 ? 'green' : netPnL < 0 ? 'red' : '';
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card"><div class="stat-lbl">Total Trades</div><div class="stat-val blue">${all.length}</div></div>
+    <div class="stat-card"><div class="stat-lbl">Win Rate</div><div class="stat-val ${wrCls}">${wr}${isNaN(wrNum)?'':'%'}</div></div>
+    <div class="stat-card"><div class="stat-lbl">Net P&amp;L</div><div class="stat-val ${pnlCls}">${netPnL >= 0 ? '+' : ''}$${netPnL.toFixed(2)}</div></div>
+    <div class="stat-card"><div class="stat-lbl">Avg R : R</div><div class="stat-val gold">${avgRR}</div></div>
+  `;
+}
+
+function getFiltered() {
+  let t = Store.getTrades();
+  const pair   = document.getElementById('fPair').value;
+  const dir    = document.getElementById('fDir').value;
+  const status = document.getElementById('fStatus').value;
+  const from   = document.getElementById('fFrom').value;
+  const to     = document.getElementById('fTo').value;
+  if (pair)   t = t.filter(x => x.pair      === pair);
+  if (dir)    t = t.filter(x => x.direction === dir);
+  if (status) t = t.filter(x => x.status    === status);
+  if (from)   t = t.filter(x => x.date >= from);
+  if (to)     t = t.filter(x => x.date <= to);
+  return t.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+function statusDropdown(t) {
+  return `<select class="status-sel" data-id="${t.id}" style="width:auto;padding:3px 6px;font-size:11px;">
+    <option value="OPEN"  ${t.status==='OPEN' ?'selected':''}>OPEN</option>
+    <option value="WIN"   ${t.status==='WIN'  ?'selected':''}>WIN</option>
+    <option value="LOSS"  ${t.status==='LOSS' ?'selected':''}>LOSS</option>
+  </select>`;
+}
+
+function renderTable() {
+  const trades = getFiltered();
+  const body   = document.getElementById('tradeBody');
+  const empty  = document.getElementById('emptyState');
+
+  if (!trades.length) {
+    body.innerHTML     = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  body.innerHTML = trades.map(t => {
+    const dirBadge = `<span class="badge badge-${t.direction.toLowerCase()}">${t.direction}</span>`;
+    return `<tr>
+      <td>${t.date}</td>
+      <td class="fw-600">${t.pair}</td>
+      <td>${dirBadge}</td>
+      <td>${t.entry}</td>
+      <td class="text-red">${t.sl}</td>
+      <td class="text-green">${t.tp}</td>
+      <td>${t.lots}</td>
+      <td class="text-gold">1 : ${t.rr}</td>
+      <td class="text-red">$${t.riskDol}</td>
+      <td class="text-green">$${t.rewardDol}</td>
+      <td>${statusDropdown(t)}</td>
+      <td class="text-muted" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;">${t.notes || '&mdash;'}</td>
+      <td><button class="del-btn" data-del="${t.id}" title="Delete trade">&#x1F5D1;</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function render() {
+  renderStats();
+  renderTable();
+}
+
+function exportCSV() {
+  const trades = Store.getTrades();
+  const header = 'Date,Pair,Direction,Entry,SL,TP,Lots,RR,Risk$,Reward$,Status,Notes';
+  const rows = trades.map(t =>
+    [t.date, t.pair, t.direction, t.entry, t.sl, t.tp, t.lots, t.rr,
+     t.riskDol, t.rewardDol, t.status,
+     `"${(t.notes||'').replace(/"/g,'""')}"`].join(',')
+  );
+  const csv = [header, ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = 'fx-journal.csv';
+  a.click();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  render();
+
+  document.getElementById('btnFilter').addEventListener('click', render);
+  document.getElementById('btnExport').addEventListener('click', exportCSV);
+
+  document.getElementById('tradeBody').addEventListener('change', e => {
+    if (e.target.classList.contains('status-sel')) {
+      Store.updateTrade(Number(e.target.dataset.id), { status: e.target.value });
+      render();
+    }
+  });
+
+  document.getElementById('tradeBody').addEventListener('click', e => {
+    const id = e.target.dataset.del;
+    if (id && confirm('Delete this trade? This cannot be undone.')) {
+      Store.deleteTrade(Number(id));
+      render();
+    }
+  });
+});
+</script>
+
+</body>
+</html>

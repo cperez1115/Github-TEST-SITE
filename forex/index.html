@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forex Backtester</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://unpkg.com/lightweight-charts@4.1.7/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/pnl.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html" class="nav-logo">&#x1F4C8; FX Backtest</a>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link active">Chart</a>
+    <a href="journal.html" class="nav-link">Journal</a>
+    <a href="calendar.html" class="nav-link">Calendar</a>
+  </div>
+</nav>
+
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <div class="sb-section">
+      <div class="sb-label">Pair</div>
+      <select id="pair">
+        <option value="XAUUSD">XAU/USD &mdash; Gold</option>
+        <option value="XAGUSD">XAG/USD &mdash; Silver</option>
+        <option value="EURUSD">EUR/USD</option>
+        <option value="GBPUSD">GBP/USD</option>
+        <option value="USDJPY">USD/JPY</option>
+        <option value="AUDUSD">AUD/USD</option>
+        <option value="USDCAD">USD/CAD</option>
+        <option value="USDCHF">USD/CHF</option>
+        <option value="NZDUSD">NZD/USD</option>
+        <option value="EURJPY">EUR/JPY</option>
+        <option value="GBPJPY">GBP/JPY</option>
+      </select>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">Timeframe</div>
+      <select id="timeframe">
+        <option value="M15">M15</option>
+        <option value="M30">M30</option>
+        <option value="H1" selected>H1</option>
+        <option value="H4">H4</option>
+        <option value="D1">Daily</option>
+        <option value="W1">Weekly</option>
+      </select>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">Start Date</div>
+      <input type="date" id="startDate">
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">Alpha Vantage API Key</div>
+      <input type="password" id="apiKey" placeholder="Paste key here">
+      <a class="link" href="https://www.alphavantage.co/support/#api-key" target="_blank" rel="noopener">Get free key &rarr;</a>
+    </div>
+
+    <button class="btn btn-primary btn-full" id="btnLoad">Load Data</button>
+    <button class="btn btn-outline btn-full btn-sm" id="btnClearCache">Clear Cache</button>
+
+    <div id="statusMsg" class="status-msg"></div>
+
+  </aside>
+
+  <!-- Main area -->
+  <div class="main-area">
+
+    <div class="chart-wrap" id="chartWrap">
+      <div id="chart"></div>
+    </div>
+
+    <!-- Backtest controls -->
+    <div class="bt-bar">
+      <button class="btn-icon" id="btnSkipBack" title="Skip back 10">&laquo;&minus;10</button>
+      <button class="btn-icon" id="btnBack"     title="Step back 1">&minus;1</button>
+      <button class="btn-icon" id="btnPlay"     title="Play / Pause">&#9654;</button>
+      <button class="btn-icon" id="btnFwd"      title="Step forward 1">+1</button>
+      <button class="btn-icon" id="btnSkipFwd" title="Skip forward 10">+10&raquo;</button>
+
+      <select class="speed-sel" id="speed">
+        <option value="800">Slow</option>
+        <option value="400" selected>Normal</option>
+        <option value="150">Fast</option>
+        <option value="60">Turbo</option>
+      </select>
+
+      <span class="bt-counter" id="candleCounter">No data &mdash; load a pair to start</span>
+    </div>
+
+    <!-- Trade entry -->
+    <div class="trade-panel">
+      <div class="trade-row">
+
+        <div class="trade-field" style="max-width:150px;">
+          <label>Direction</label>
+          <div class="dir-btns">
+            <button class="btn btn-buy active" id="btnBuy">&#9650; BUY</button>
+            <button class="btn btn-sell"       id="btnSell">&#9660; SELL</button>
+          </div>
+        </div>
+
+        <div class="trade-field">
+          <label>Entry</label>
+          <div style="display:flex;gap:4px;">
+            <input type="number" id="entry" placeholder="0.00" step="any">
+            <button class="btn btn-outline use-cur" id="btnUseCurrent" title="Use current candle close price">&#8593;</button>
+          </div>
+        </div>
+
+        <div class="trade-field">
+          <label>Stop Loss</label>
+          <input type="number" id="sl" placeholder="0.00" step="any">
+        </div>
+
+        <div class="trade-field">
+          <label>Take Profit</label>
+          <input type="number" id="tp" placeholder="0.00" step="any">
+        </div>
+
+        <div class="trade-field" style="max-width:80px;">
+          <label>Lots</label>
+          <input type="number" id="lots" value="0.10" min="0.01" step="0.01">
+        </div>
+
+        <div class="trade-field" style="max-width:200px;">
+          <label>Notes</label>
+          <input type="text" id="notes" placeholder="Optional notes&hellip;">
+        </div>
+
+        <div class="trade-field" style="max-width:110px;">
+          <label>&nbsp;</label>
+          <button class="btn btn-primary btn-full" id="btnLog">Log Trade</button>
+        </div>
+
+      </div>
+
+      <div class="pnl-preview" id="pnlPreview">
+        <span class="text-muted">Enter Entry, SL, and TP to see P&amp;L preview</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────
+let chart = null;
+let candleSeries = null;
+let candles = [];
+let currentIdx = 0;
+let playTimer = null;
+let direction = 'BUY';
+let prevLines = { entry: null, sl: null, tp: null };
+
+// ── Boot ──────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initChart();
+  const saved = Store.getApiKey();
+  if (saved) document.getElementById('apiKey').value = saved;
+  bindEvents();
+});
+
+// ── Chart setup ───────────────────────────────────────────────────────
+function initChart() {
+  const wrap = document.getElementById('chartWrap');
+  chart = LightweightCharts.createChart(document.getElementById('chart'), {
+    width:  wrap.clientWidth,
+    height: wrap.clientHeight,
+    layout: { background: { color: '#0d1117' }, textColor: '#e6edf3' },
+    grid:   { vertLines: { color: '#21262d' }, horzLines: { color: '#21262d' } },
+    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+    rightPriceScale: { borderColor: '#30363d' },
+    timeScale: { borderColor: '#30363d', timeVisible: true, secondsVisible: false },
+  });
+
+  candleSeries = chart.addCandlestickSeries({
+    upColor:         '#3fb950',
+    downColor:       '#f85149',
+    borderUpColor:   '#3fb950',
+    borderDownColor: '#f85149',
+    wickUpColor:     '#3fb950',
+    wickDownColor:   '#f85149',
+  });
+
+  new ResizeObserver(() => {
+    chart.applyOptions({ width: wrap.clientWidth, height: wrap.clientHeight });
+  }).observe(wrap);
+}
+
+// ── Events ────────────────────────────────────────────────────────────
+function bindEvents() {
+  document.getElementById('btnLoad').addEventListener('click', loadData);
+  document.getElementById('btnClearCache').addEventListener('click', () => {
+    Store.clearCache();
+    setStatus('success', 'Cache cleared.');
+  });
+
+  document.getElementById('btnSkipBack').addEventListener('click', () => jump(-10));
+  document.getElementById('btnBack')    .addEventListener('click', () => jump(-1));
+  document.getElementById('btnPlay')    .addEventListener('click', togglePlay);
+  document.getElementById('btnFwd')     .addEventListener('click', () => jump(1));
+  document.getElementById('btnSkipFwd') .addEventListener('click', () => jump(10));
+
+  document.getElementById('btnBuy') .addEventListener('click', () => setDir('BUY'));
+  document.getElementById('btnSell').addEventListener('click', () => setDir('SELL'));
+  document.getElementById('btnUseCurrent').addEventListener('click', useCurrent);
+  document.getElementById('btnLog').addEventListener('click', logTrade);
+
+  ['entry','sl','tp','lots'].forEach(id =>
+    document.getElementById(id).addEventListener('input', updatePnL)
+  );
+}
+
+// ── Load data ─────────────────────────────────────────────────────────
+async function loadData() {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  Store.setApiKey(apiKey);
+
+  const pair = document.getElementById('pair').value;
+  const tf   = document.getElementById('timeframe').value;
+
+  setStatus('info', '<span class="spinner"></span> Fetching data&hellip;');
+  document.getElementById('btnLoad').disabled = true;
+
+  try {
+    candles = await API.fetchCandles(pair, tf, apiKey);
+
+    const startDate = document.getElementById('startDate').value;
+    if (startDate) {
+      const isDayly = tf === 'D1' || tf === 'W1';
+      const startTs = isDayly
+        ? startDate
+        : Math.floor(new Date(startDate + 'T00:00:00Z').getTime() / 1000);
+      const idx = candles.findIndex(c => c.time >= startTs);
+      currentIdx = idx > 0 ? Math.min(idx + 60, candles.length) : Math.min(60, candles.length);
+    } else {
+      currentIdx = Math.min(60, candles.length);
+    }
+
+    renderChart();
+    setStatus('success', `&#10003; ${candles.length.toLocaleString()} candles loaded &mdash; ${pair} ${tf}`);
+  } catch (err) {
+    setStatus('error', err.message);
+  } finally {
+    document.getElementById('btnLoad').disabled = false;
+  }
+}
+
+// ── Render ────────────────────────────────────────────────────────────
+function renderChart() {
+  const visible = candles.slice(0, currentIdx);
+  candleSeries.setData(visible);
+  renderMarkers(visible);
+  updateCounter();
+}
+
+function renderMarkers(visible) {
+  if (!visible.length) return;
+  const pair = document.getElementById('pair').value;
+  const isDayly = typeof visible[0].time === 'string';
+  const trades  = Store.getTrades().filter(t => t.pair === pair);
+  const markers = [];
+
+  for (const t of trades) {
+    let mTime;
+    if (isDayly) {
+      mTime = t.date;
+      if (!visible.some(c => c.time === mTime)) continue;
+    } else {
+      const dayStart = Math.floor(new Date(t.date + 'T00:00:00Z').getTime() / 1000);
+      const dayEnd   = dayStart + 86400;
+      const match    = visible.find(c => c.time >= dayStart && c.time < dayEnd);
+      if (!match) continue;
+      mTime = match.time;
+    }
+    markers.push({
+      time:     mTime,
+      position: t.direction === 'BUY' ? 'belowBar' : 'aboveBar',
+      color:    t.direction === 'BUY' ? '#3fb950'  : '#f85149',
+      shape:    t.direction === 'BUY' ? 'arrowUp'  : 'arrowDown',
+      text:     `${t.direction} ${t.lots}L @${t.entry}`,
+    });
+  }
+
+  if (markers.length) {
+    markers.sort((a, b) => (a.time > b.time ? 1 : -1));
+    candleSeries.setMarkers(markers);
+  }
+}
+
+function updateCounter() {
+  document.getElementById('candleCounter').textContent =
+    candles.length
+      ? `Candle ${currentIdx.toLocaleString()} / ${candles.length.toLocaleString()}`
+      : 'No data — load a pair to start';
+}
+
+// ── Playback ──────────────────────────────────────────────────────────
+function jump(n) {
+  if (!candles.length) return;
+  const next = Math.max(1, Math.min(candles.length, currentIdx + n));
+  if (next === currentIdx) return;
+  const delta = next - currentIdx;
+  currentIdx  = next;
+
+  if (delta === 1) {
+    candleSeries.update(candles[currentIdx - 1]);
+    updateCounter();
+  } else {
+    renderChart();
+  }
+}
+
+function togglePlay() {
+  const btn = document.getElementById('btnPlay');
+  if (playTimer) {
+    clearInterval(playTimer);
+    playTimer = null;
+    btn.innerHTML = '&#9654;';
+    btn.classList.remove('playing');
+    return;
+  }
+  const ms = parseInt(document.getElementById('speed').value);
+  btn.innerHTML = '&#9646;&#9646;';
+  btn.classList.add('playing');
+  playTimer = setInterval(() => {
+    if (currentIdx >= candles.length) {
+      clearInterval(playTimer);
+      playTimer = null;
+      btn.innerHTML = '&#9654;';
+      btn.classList.remove('playing');
+      return;
+    }
+    jump(1);
+  }, ms);
+}
+
+// ── Direction ─────────────────────────────────────────────────────────
+function setDir(d) {
+  direction = d;
+  document.getElementById('btnBuy') .classList.toggle('active', d === 'BUY');
+  document.getElementById('btnSell').classList.toggle('active', d === 'SELL');
+  updatePnL();
+}
+
+function useCurrent() {
+  if (!candles.length || currentIdx === 0) return;
+  const c = candles[currentIdx - 1];
+  const dec = c.close > 999 ? 2 : c.close > 9 ? 3 : 4;
+  document.getElementById('entry').value = c.close.toFixed(dec);
+  updatePnL();
+}
+
+// ── P&L preview ───────────────────────────────────────────────────────
+function updatePnL() {
+  const pair  = document.getElementById('pair').value;
+  const entry = parseFloat(document.getElementById('entry').value);
+  const sl    = parseFloat(document.getElementById('sl').value);
+  const tp    = parseFloat(document.getElementById('tp').value);
+  const lots  = parseFloat(document.getElementById('lots').value) || 0.1;
+
+  clearPreviewLines();
+  if (!isNaN(entry)) prevLines.entry = makeLine(entry, '#f0b429', 'Entry');
+  if (!isNaN(sl))    prevLines.sl    = makeLine(sl,    '#f85149', 'SL');
+  if (!isNaN(tp))    prevLines.tp    = makeLine(tp,    '#3fb950', 'TP');
+
+  const el = document.getElementById('pnlPreview');
+  if (isNaN(entry) || isNaN(sl) || isNaN(tp)) {
+    el.innerHTML = '<span class="text-muted">Enter Entry, SL, and TP to see P&amp;L preview</span>';
+    return;
+  }
+
+  const r = PnL.calc(pair, direction, entry, sl, tp, lots);
+  el.innerHTML =
+    `R:R <span class="pnl-val gold">1 : ${r.rr}</span>` +
+    `&ensp;&middot;&ensp;Risk <span class="pnl-val neg">$${r.riskDol}</span> (${r.riskPips} pips)` +
+    `&ensp;&middot;&ensp;Reward <span class="pnl-val pos">$${r.rewardDol}</span> (${r.rewardPips} pips)`;
+}
+
+function makeLine(price, color, title) {
+  if (!candleSeries) return null;
+  try {
+    return candleSeries.createPriceLine({ price, color, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title });
+  } catch { return null; }
+}
+
+function clearPreviewLines() {
+  ['entry','sl','tp'].forEach(k => {
+    if (prevLines[k]) {
+      try { candleSeries.removePriceLine(prevLines[k]); } catch {}
+      prevLines[k] = null;
+    }
+  });
+}
+
+// ── Log trade ─────────────────────────────────────────────────────────
+function logTrade() {
+  const pair  = document.getElementById('pair').value;
+  const entry = parseFloat(document.getElementById('entry').value);
+  const sl    = parseFloat(document.getElementById('sl').value);
+  const tp    = parseFloat(document.getElementById('tp').value);
+  const lots  = parseFloat(document.getElementById('lots').value) || 0.1;
+  const notes = document.getElementById('notes').value.trim();
+
+  if (isNaN(entry) || isNaN(sl) || isNaN(tp)) {
+    setStatus('error', 'Entry, SL, and TP are required.');
+    return;
+  }
+
+  const cur = candles[currentIdx - 1];
+  let date;
+  if (cur) {
+    date = typeof cur.time === 'string'
+      ? cur.time
+      : new Date(cur.time * 1000).toISOString().slice(0, 10);
+  } else {
+    date = new Date().toISOString().slice(0, 10);
+  }
+
+  const r = PnL.calc(pair, direction, entry, sl, tp, lots);
+  Store.saveTrade({ pair, direction, entry, sl, tp, lots, notes, date, status: 'OPEN', rr: r.rr, riskDol: r.riskDol, rewardDol: r.rewardDol });
+
+  document.getElementById('entry').value = '';
+  document.getElementById('sl').value    = '';
+  document.getElementById('tp').value    = '';
+  document.getElementById('notes').value = '';
+  clearPreviewLines();
+  document.getElementById('pnlPreview').innerHTML = '<span class="text-muted">Enter Entry, SL, and TP to see P&amp;L preview</span>';
+
+  renderChart();
+  setStatus('success', `Trade logged &#10003; &mdash; ${direction} ${pair} @ ${entry}`);
+}
+
+// ── Status helper ─────────────────────────────────────────────────────
+function setStatus(type, html) {
+  const el = document.getElementById('statusMsg');
+  el.className = `status-msg show ${type}`;
+  el.innerHTML = html;
+}
+</script>
+
+</body>
+</html>
