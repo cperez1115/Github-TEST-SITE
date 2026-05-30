@@ -27,6 +27,23 @@ const Store = {
     localStorage.setItem('fx_trades', JSON.stringify(trades));
   },
 
+  getEntries() {
+    return JSON.parse(localStorage.getItem('fx_entries') || '[]');
+  },
+
+  saveEntry(entry) {
+    const entries = this.getEntries();
+    entry.id = Date.now();
+    entries.push(entry);
+    localStorage.setItem('fx_entries', JSON.stringify(entries));
+    return entry;
+  },
+
+  deleteEntry(id) {
+    const entries = this.getEntries().filter(e => e.id !== id);
+    localStorage.setItem('fx_entries', JSON.stringify(entries));
+  },
+
   getApiKey() {
     return localStorage.getItem('fx_api_key') || '';
   },

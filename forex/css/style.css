@@ -397,6 +397,93 @@ textarea { resize: vertical; min-height: 54px; }
   letter-spacing: 0.4px;
 }
 
+/* Journal entry cards */
+.entries-divider {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: var(--muted);
+  font-weight: 700;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  margin-bottom: 14px;
+}
+.entries-list { display: flex; flex-direction: column; gap: 10px; }
+.entry-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 16px 20px;
+  transition: border-color 0.15s;
+}
+.entry-card:hover { border-color: var(--accent-glow); }
+.entry-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.entry-date {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.entry-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+  min-width: 120px;
+}
+.entry-tag {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tag-lesson   { background: rgba(163,230,53,0.15); color: var(--accent); }
+.tag-market   { background: rgba(88,166,255,0.15); color: var(--blue); }
+.tag-review   { background: rgba(248,195,73,0.15); color: #f8c349; }
+.tag-strategy { background: rgba(63,185,80,0.15);  color: var(--green); }
+.tag-mindset  { background: rgba(248,81,73,0.15);  color: var(--red); }
+.entry-body {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.7;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.entry-body.expanded {
+  display: block;
+  overflow: visible;
+}
+.entry-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 0 0;
+  font-family: inherit;
+  transition: opacity 0.12s;
+}
+.entry-toggle:hover { opacity: 0.7; }
+
 /* Section divider */
 .section-divider {
   border: none;

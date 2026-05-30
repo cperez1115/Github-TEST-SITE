@@ -92,6 +92,53 @@
     <div id="logStatus" class="status-msg" style="margin-top:12px;"></div>
   </section>
 
+  <!-- Journal Entries -->
+  <section class="log-section" id="journal-entries">
+    <div class="section-title">Journal Entries</div>
+
+    <div class="log-row">
+      <div class="log-field" style="max-width:150px;">
+        <label>Date</label>
+        <input type="date" id="jDate">
+      </div>
+      <div class="log-field" style="flex:2;min-width:200px;">
+        <label>Title</label>
+        <input type="text" id="jTitle" placeholder="What&apos;s on your mind today?">
+      </div>
+      <div class="log-field" style="max-width:210px;">
+        <label>Category</label>
+        <select id="jTag">
+          <option>Lesson Learned</option>
+          <option>Market Thoughts</option>
+          <option>Trade Review</option>
+          <option>Strategy Notes</option>
+          <option>Mindset &amp; Psychology</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="log-row">
+      <div class="log-field">
+        <label>Write</label>
+        <textarea id="jBody" rows="6" placeholder="Write your thoughts, lessons, or trade review here&hellip;"></textarea>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:14px;margin-top:6px;">
+      <button class="btn btn-primary" id="btnSaveEntry">Save Entry</button>
+      <div id="jStatus" class="status-msg"></div>
+    </div>
+
+    <!-- Past entries list -->
+    <div id="entriesSection" style="margin-top:32px;">
+      <div class="entries-divider">Past Entries</div>
+      <div class="entries-list" id="entriesList"></div>
+      <div class="empty-state" id="entriesEmpty" style="padding:36px 20px;display:none;">
+        No entries yet &mdash; write your first one above.
+      </div>
+    </div>
+  </section>
+
   <!-- Stats -->
   <div class="stats-grid" id="statsGrid"></div>
 
@@ -166,15 +213,19 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('lDate').value = new Date().toISOString().slice(0, 10);
   bindLogEvents();
   bindTableEvents();
+  bindEntryEvents();
   render();
+  renderEntries();
 
-  // Scroll to log form if navigated via anchor
   if (location.hash === '#log-trade') {
     setTimeout(() => document.getElementById('log-trade').scrollIntoView({ behavior: 'smooth' }), 100);
   }
+  if (location.hash === '#journal-entries') {
+    setTimeout(() => document.getElementById('journal-entries').scrollIntoView({ behavior: 'smooth' }), 100);
+  }
 });
 
-// ── Log form ──────────────────────────────────────────────
+// ── Trade log form ────────────────────────────────────────
 function bindLogEvents() {
   document.getElementById('lBtnBuy') .addEventListener('click', () => setLDir('BUY'));
   document.getElementById('lBtnSell').addEventListener('click', () => setLDir('SELL'));
@@ -273,7 +324,6 @@ function logTrade() {
     return;
   }
 
-  // Reset form
   ['lEntry','lSL','lTP','lNotes'].forEach(id => document.getElementById(id).value = '');
   clearImage();
   setLDir('BUY');
@@ -288,6 +338,95 @@ function setLogStatus(type, html) {
   const el = document.getElementById('logStatus');
   el.className = `status-msg show ${type}`;
   el.innerHTML = html;
+}
+
+// ── Journal entries ───────────────────────────────────────
+const TAG_CLASS = {
+  'Lesson Learned':       'tag-lesson',
+  'Market Thoughts':      'tag-market',
+  'Trade Review':         'tag-review',
+  'Strategy Notes':       'tag-strategy',
+  'Mindset & Psychology': 'tag-mindset',
+};
+
+function bindEntryEvents() {
+  document.getElementById('jDate').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('btnSaveEntry').addEventListener('click', saveJournalEntry);
+  document.getElementById('entriesList').addEventListener('click', entryListClick);
+}
+
+function saveJournalEntry() {
+  const date  = document.getElementById('jDate').value || new Date().toISOString().slice(0, 10);
+  const title = document.getElementById('jTitle').value.trim();
+  const tag   = document.getElementById('jTag').value;
+  const body  = document.getElementById('jBody').value.trim();
+  if (!body) { setEntryStatus('error', 'Write something before saving.'); return; }
+  Store.saveEntry({ date, title: title || 'Untitled Entry', tag, body });
+  document.getElementById('jTitle').value = '';
+  document.getElementById('jBody').value  = '';
+  setEntryStatus('success', '&#10003; Entry saved.');
+  renderEntries();
+}
+
+function setEntryStatus(type, html) {
+  const el = document.getElementById('jStatus');
+  el.className = `status-msg show ${type}`;
+  el.innerHTML = html;
+  setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+function renderEntries() {
+  const entries = Store.getEntries().slice().reverse();
+  const list    = document.getElementById('entriesList');
+  const empty   = document.getElementById('entriesEmpty');
+  if (!entries.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  list.innerHTML = entries.map(e => `
+    <div class="entry-card">
+      <div class="entry-header">
+        <span class="entry-date">${e.date}</span>
+        <span class="entry-title">${escHtml(e.title)}</span>
+        <span class="entry-tag ${TAG_CLASS[e.tag] || 'tag-lesson'}">${e.tag}</span>
+        <button class="del-btn" data-edel="${e.id}" title="Delete entry">&#x1F5D1;</button>
+      </div>
+      <div class="entry-body" id="eb-${e.id}">${escHtml(e.body)}</div>
+      <button class="entry-toggle" id="et-${e.id}" data-etoggle="${e.id}">Show more &#x25BE;</button>
+    </div>
+  `).join('');
+
+  requestAnimationFrame(() => {
+    entries.forEach(e => {
+      const bodyEl = document.getElementById('eb-' + e.id);
+      const btnEl  = document.getElementById('et-' + e.id);
+      if (bodyEl && bodyEl.scrollHeight > bodyEl.clientHeight + 4) {
+        btnEl.style.display = 'inline-block';
+      }
+    });
+  });
+}
+
+function entryListClick(e) {
+  const delId = e.target.dataset.edel;
+  if (delId && confirm('Delete this journal entry?')) {
+    Store.deleteEntry(Number(delId));
+    renderEntries();
+    return;
+  }
+  const toggleId = e.target.dataset.etoggle;
+  if (toggleId) {
+    const bodyEl = document.getElementById('eb-' + toggleId);
+    const btnEl  = document.getElementById('et-' + toggleId);
+    const open   = bodyEl.classList.toggle('expanded');
+    btnEl.innerHTML = open ? 'Show less &#x25B4;' : 'Show more &#x25BE;';
+  }
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 // ── Stats & table ─────────────────────────────────────────
