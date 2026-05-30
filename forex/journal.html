@@ -13,15 +13,89 @@
 <nav class="nav">
   <a href="index.html" class="nav-logo">&#x1F4C8; FX Backtest</a>
   <div class="nav-links">
-    <a href="index.html" class="nav-link">Chart</a>
-    <a href="journal.html" class="nav-link active">Journal</a>
+    <a href="index.html"    class="nav-link">Chart</a>
+    <a href="journal.html"  class="nav-link active">Journal</a>
     <a href="calendar.html" class="nav-link">Calendar</a>
   </div>
 </nav>
 
 <div class="page-wrap">
+
+  <!-- Log New Trade -->
+  <section class="log-section" id="log-trade">
+    <div class="section-title">Log New Trade</div>
+
+    <div class="log-row">
+      <div class="log-field" style="max-width:140px;">
+        <label>Pair</label>
+        <select id="lPair">
+          <option>XAUUSD</option><option>XAGUSD</option>
+          <option>EURUSD</option><option>GBPUSD</option>
+          <option>USDJPY</option><option>AUDUSD</option>
+          <option>USDCAD</option><option>USDCHF</option>
+          <option>NZDUSD</option><option>EURJPY</option><option>GBPJPY</option>
+        </select>
+      </div>
+      <div class="log-field" style="max-width:150px;">
+        <label>Date</label>
+        <input type="date" id="lDate">
+      </div>
+      <div class="log-field" style="max-width:168px;">
+        <label>Direction</label>
+        <div class="dir-btns">
+          <button class="btn btn-buy active" id="lBtnBuy">&#9650; BUY</button>
+          <button class="btn btn-sell"       id="lBtnSell">&#9660; SELL</button>
+        </div>
+      </div>
+      <div class="log-field">
+        <label>Entry</label>
+        <input type="number" id="lEntry" placeholder="0.00" step="any">
+      </div>
+      <div class="log-field">
+        <label>Stop Loss</label>
+        <input type="number" id="lSL" placeholder="0.00" step="any">
+      </div>
+      <div class="log-field">
+        <label>Take Profit</label>
+        <input type="number" id="lTP" placeholder="0.00" step="any">
+      </div>
+      <div class="log-field" style="max-width:88px;">
+        <label>Lots</label>
+        <input type="number" id="lLots" value="0.10" min="0.01" step="0.01">
+      </div>
+    </div>
+
+    <div class="log-row">
+      <div class="log-field" style="flex:2;min-width:200px;">
+        <label>Notes</label>
+        <input type="text" id="lNotes" placeholder="Strategy, confluences, session&hellip;">
+      </div>
+      <div class="log-field" style="max-width:190px;">
+        <label>Chart Screenshot</label>
+        <input type="file" id="lImage" accept="image/*" style="display:none">
+        <button class="img-upload-btn" id="btnAttach">&#x1F4CE; Attach Screenshot</button>
+        <div class="img-preview-box" id="imgPreviewBox" style="display:none;">
+          <img id="imgPreview" class="img-thumb-preview" alt="preview">
+          <button class="img-clear-btn" id="btnClearImg" title="Remove image">&times;</button>
+        </div>
+      </div>
+      <div class="log-field" style="max-width:130px;">
+        <label>&nbsp;</label>
+        <button class="btn btn-primary btn-full" id="btnLog">Log Trade</button>
+      </div>
+    </div>
+
+    <div class="pnl-preview" id="lPnlPreview">
+      <span class="text-muted">Enter Entry, SL, and TP to see P&amp;L preview</span>
+    </div>
+
+    <div id="logStatus" class="status-msg" style="margin-top:12px;"></div>
+  </section>
+
+  <!-- Stats -->
   <div class="stats-grid" id="statsGrid"></div>
 
+  <!-- Filters -->
   <div class="filter-bar">
     <div>
       <span class="filter-label">Pair</span>
@@ -54,24 +128,169 @@
     <button class="btn btn-outline btn-sm" id="btnExport" style="align-self:flex-end;margin-left:auto;">Export CSV</button>
   </div>
 
+  <!-- Trades table -->
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
           <th>Date</th><th>Pair</th><th>Dir</th><th>Entry</th>
-          <th>SL</th><th>TP</th><th>Lots</th><th>R : R</th>
-          <th>Risk $</th><th>Reward $</th><th>Status</th><th>Notes</th><th></th>
+          <th>SL</th><th>TP</th><th>Lots</th><th>R&thinsp;:&thinsp;R</th>
+          <th>Risk&thinsp;$</th><th>Reward&thinsp;$</th>
+          <th>Status</th><th>Chart</th><th>Notes</th><th></th>
         </tr>
       </thead>
       <tbody id="tradeBody"></tbody>
     </table>
     <div class="empty-state" id="emptyState" style="display:none;">
-      No trades yet &mdash; <a href="index.html">go to the Chart to log your first trade &rarr;</a>
+      No trades yet &mdash; fill in the form above to log your first trade.
     </div>
   </div>
+
 </div>
 
+<!-- Image modal -->
+<div id="imgModal" class="img-modal" onclick="closeModal()">
+  <img id="imgModalSrc" class="img-modal-img" alt="Chart screenshot">
+  <p class="img-modal-hint">Click anywhere to close</p>
+</div>
+
+<footer class="footer">
+  <strong>FX Backtest</strong> &mdash; Trade Journal &amp; Backtester
+</footer>
+
 <script>
+let lDirection = 'BUY';
+let imageData  = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('lDate').value = new Date().toISOString().slice(0, 10);
+  bindLogEvents();
+  bindTableEvents();
+  render();
+
+  // Scroll to log form if navigated via anchor
+  if (location.hash === '#log-trade') {
+    setTimeout(() => document.getElementById('log-trade').scrollIntoView({ behavior: 'smooth' }), 100);
+  }
+});
+
+// ── Log form ──────────────────────────────────────────────
+function bindLogEvents() {
+  document.getElementById('lBtnBuy') .addEventListener('click', () => setLDir('BUY'));
+  document.getElementById('lBtnSell').addEventListener('click', () => setLDir('SELL'));
+  document.getElementById('btnLog')  .addEventListener('click', logTrade);
+  document.getElementById('btnAttach').addEventListener('click', () => document.getElementById('lImage').click());
+  document.getElementById('btnClearImg').addEventListener('click', clearImage);
+  document.getElementById('lImage').addEventListener('change', handleImageSelect);
+  ['lPair','lEntry','lSL','lTP','lLots'].forEach(id =>
+    document.getElementById(id).addEventListener('input', updatePnL)
+  );
+}
+
+function setLDir(d) {
+  lDirection = d;
+  document.getElementById('lBtnBuy') .classList.toggle('active', d === 'BUY');
+  document.getElementById('lBtnSell').classList.toggle('active', d === 'SELL');
+  updatePnL();
+}
+
+function updatePnL() {
+  const pair  = document.getElementById('lPair').value;
+  const entry = parseFloat(document.getElementById('lEntry').value);
+  const sl    = parseFloat(document.getElementById('lSL').value);
+  const tp    = parseFloat(document.getElementById('lTP').value);
+  const lots  = parseFloat(document.getElementById('lLots').value) || 0.1;
+  const el    = document.getElementById('lPnlPreview');
+  if (isNaN(entry) || isNaN(sl) || isNaN(tp)) {
+    el.innerHTML = '<span class="text-muted">Enter Entry, SL, and TP to see P&amp;L preview</span>';
+    return;
+  }
+  const r = PnL.calc(pair, lDirection, entry, sl, tp, lots);
+  el.innerHTML =
+    `R:R <span class="pnl-val gold">1 : ${r.rr}</span>` +
+    `&ensp;&middot;&ensp;Risk <span class="pnl-val neg">$${r.riskDol}</span> (${r.riskPips} pips)` +
+    `&ensp;&middot;&ensp;Reward <span class="pnl-val pos">$${r.rewardDol}</span> (${r.rewardPips} pips)`;
+}
+
+async function handleImageSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  imageData = await resizeImage(file);
+  document.getElementById('imgPreview').src = imageData;
+  document.getElementById('btnAttach').style.display = 'none';
+  document.getElementById('imgPreviewBox').style.display = 'block';
+}
+
+function clearImage() {
+  imageData = null;
+  document.getElementById('lImage').value = '';
+  document.getElementById('btnAttach').style.display = 'flex';
+  document.getElementById('imgPreviewBox').style.display = 'none';
+}
+
+function resizeImage(file, maxW = 900) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const r = Math.min(1, maxW / img.width);
+        const c = document.createElement('canvas');
+        c.width = img.width * r;
+        c.height = img.height * r;
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL('image/jpeg', 0.75));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function logTrade() {
+  const pair  = document.getElementById('lPair').value;
+  const date  = document.getElementById('lDate').value || new Date().toISOString().slice(0, 10);
+  const entry = parseFloat(document.getElementById('lEntry').value);
+  const sl    = parseFloat(document.getElementById('lSL').value);
+  const tp    = parseFloat(document.getElementById('lTP').value);
+  const lots  = parseFloat(document.getElementById('lLots').value) || 0.1;
+  const notes = document.getElementById('lNotes').value.trim();
+
+  if (isNaN(entry) || isNaN(sl) || isNaN(tp)) {
+    setLogStatus('error', 'Entry, SL, and TP are required.');
+    return;
+  }
+
+  const r = PnL.calc(pair, lDirection, entry, sl, tp, lots);
+  const trade = { pair, direction: lDirection, entry, sl, tp, lots, notes, date,
+                  status: 'OPEN', rr: r.rr, riskDol: r.riskDol, rewardDol: r.rewardDol };
+  if (imageData) trade.image = imageData;
+
+  try {
+    Store.saveTrade(trade);
+  } catch (e) {
+    setLogStatus('error', 'Storage full &mdash; try clearing old images.');
+    return;
+  }
+
+  // Reset form
+  ['lEntry','lSL','lTP','lNotes'].forEach(id => document.getElementById(id).value = '');
+  clearImage();
+  setLDir('BUY');
+  document.getElementById('lPnlPreview').innerHTML =
+    '<span class="text-muted">Enter Entry, SL, and TP to see P&amp;L preview</span>';
+
+  render();
+  setLogStatus('success', `&#10003; Trade logged &mdash; ${lDirection} ${pair} @ ${entry}`);
+}
+
+function setLogStatus(type, html) {
+  const el = document.getElementById('logStatus');
+  el.className = `status-msg show ${type}`;
+  el.innerHTML = html;
+}
+
+// ── Stats & table ─────────────────────────────────────────
 function tradePnL(t) {
   if (t.status === 'WIN')  return  parseFloat(t.rewardDol || 0);
   if (t.status === 'LOSS') return -parseFloat(t.riskDol   || 0);
@@ -93,7 +312,7 @@ function renderStats() {
     <div class="stat-card"><div class="stat-lbl">Total Trades</div><div class="stat-val blue">${all.length}</div></div>
     <div class="stat-card"><div class="stat-lbl">Win Rate</div><div class="stat-val ${wrCls}">${wr !== null ? wr + '%' : '&mdash;'}</div></div>
     <div class="stat-card"><div class="stat-lbl">Net P&amp;L</div><div class="stat-val ${pnlCls}">${netPnL >= 0 ? '+' : ''}$${netPnL.toFixed(2)}</div></div>
-    <div class="stat-card"><div class="stat-lbl">Avg R : R</div><div class="stat-val gold">${avgRR !== null ? avgRR : '&mdash;'}</div></div>
+    <div class="stat-card"><div class="stat-lbl">Avg R&thinsp;:&thinsp;R</div><div class="stat-val gold">${avgRR !== null ? avgRR : '&mdash;'}</div></div>
   `;
 }
 
@@ -113,7 +332,7 @@ function getFiltered() {
 }
 
 function statusDrop(t) {
-  return `<select class="status-sel" data-id="${t.id}" style="width:auto;padding:3px 6px;font-size:11px;">
+  return `<select class="status-sel" data-id="${t.id}" style="width:auto;padding:3px 7px;font-size:11px;">
     <option value="OPEN" ${t.status==='OPEN'?'selected':''}>OPEN</option>
     <option value="WIN"  ${t.status==='WIN' ?'selected':''}>WIN</option>
     <option value="LOSS" ${t.status==='LOSS'?'selected':''}>LOSS</option>
@@ -126,41 +345,32 @@ function renderTable() {
   const empty  = document.getElementById('emptyState');
   if (!trades.length) { body.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
-  body.innerHTML = trades.map(t => `<tr>
-    <td>${t.date}</td>
-    <td class="fw-600">${t.pair}</td>
-    <td><span class="badge badge-${t.direction.toLowerCase()}">${t.direction}</span></td>
-    <td>${t.entry}</td>
-    <td class="text-red">${t.sl}</td>
-    <td class="text-green">${t.tp}</td>
-    <td>${t.lots}</td>
-    <td class="text-gold">1 : ${t.rr}</td>
-    <td class="text-red">$${t.riskDol}</td>
-    <td class="text-green">$${t.rewardDol}</td>
-    <td>${statusDrop(t)}</td>
-    <td class="text-muted" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;">${t.notes || '&mdash;'}</td>
-    <td><button class="del-btn" data-del="${t.id}" title="Delete">&#x1F5D1;</button></td>
-  </tr>`).join('');
+  body.innerHTML = trades.map(t => {
+    const thumb = t.image
+      ? `<img src='${t.image}' class='img-thumb' onclick='viewImg(${t.id})' title='View chart'>`
+      : '<span class="text-muted">&mdash;</span>';
+    return `<tr>
+      <td>${t.date}</td>
+      <td class="fw-600">${t.pair}</td>
+      <td><span class="badge badge-${t.direction.toLowerCase()}">${t.direction}</span></td>
+      <td>${t.entry}</td>
+      <td class="text-red">${t.sl}</td>
+      <td class="text-green">${t.tp}</td>
+      <td>${t.lots}</td>
+      <td class="text-gold">1&thinsp;:&thinsp;${t.rr}</td>
+      <td class="text-red">$${t.riskDol}</td>
+      <td class="text-green">$${t.rewardDol}</td>
+      <td>${statusDrop(t)}</td>
+      <td>${thumb}</td>
+      <td class="text-muted" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;">${t.notes || '&mdash;'}</td>
+      <td><button class="del-btn" data-del="${t.id}" title="Delete">&#x1F5D1;</button></td>
+    </tr>`;
+  }).join('');
 }
 
 function render() { renderStats(); renderTable(); }
 
-function exportCSV() {
-  const trades = Store.getTrades();
-  const rows = trades.map(t =>
-    [t.date, t.pair, t.direction, t.entry, t.sl, t.tp, t.lots, t.rr,
-     t.riskDol, t.rewardDol, t.status,
-     `"${(t.notes||'').replace(/"/g,'""')}"`].join(',')
-  );
-  const csv = ['Date,Pair,Direction,Entry,SL,TP,Lots,RR,Risk$,Reward$,Status,Notes', ...rows].join('\n');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-  a.download = 'fx-journal.csv';
-  a.click();
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  render();
+function bindTableEvents() {
   document.getElementById('btnFilter').addEventListener('click', render);
   document.getElementById('btnExport').addEventListener('click', exportCSV);
   document.getElementById('tradeBody').addEventListener('change', e => {
@@ -173,7 +383,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const id = e.target.dataset.del;
     if (id && confirm('Delete this trade?')) { Store.deleteTrade(Number(id)); render(); }
   });
+}
+
+function exportCSV() {
+  const rows = Store.getTrades().map(t =>
+    [t.date, t.pair, t.direction, t.entry, t.sl, t.tp, t.lots, t.rr,
+     t.riskDol, t.rewardDol, t.status,
+     `"${(t.notes||'').replace(/"/g,'""')}"`].join(',')
+  );
+  const csv = ['Date,Pair,Direction,Entry,SL,TP,Lots,RR,Risk$,Reward$,Status,Notes', ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = 'fx-journal.csv';
+  a.click();
+}
+
+// ── Image modal ───────────────────────────────────────────
+function viewImg(id) {
+  const t = Store.getTrades().find(x => x.id === id);
+  if (!t || !t.image) return;
+  document.getElementById('imgModalSrc').src = t.image;
+  document.getElementById('imgModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('imgModal').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
 });
 </script>
+
 </body>
 </html>
